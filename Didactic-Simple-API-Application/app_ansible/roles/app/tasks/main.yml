@@ -1,0 +1,74 @@
+- name: App | Create application OS group
+  ansible.builtin.group:
+    name: "{{ app_os_group }}"
+    state: present
+
+- name: App | Create application OS user
+  ansible.builtin.user:
+    name: "{{ app_os_user }}"
+    group: "{{ app_os_group }}"
+    shell: /bin/false 
+    create_home: yes
+    home: "{{ app_root_dir }}" # Set home to app_root_dir for simplicity
+    state: present
+
+- name: App | Create application directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ app_os_user }}"
+    group: "{{ app_os_group }}"
+    mode: '0755'
+  loop:
+    - "{{ app_root_dir }}"
+    - "{{ app_src_dir }}"  
+    - "{{ app_venv_dir }}" 
+
+- name: App | Copy application source files
+  ansible.builtin.copy:
+    src: src/api_app/  # Relative to roles/app/files/
+    dest: "{{ app_src_dir }}/"
+    owner: "{{ app_os_user }}"
+    group: "{{ app_os_group }}"
+    mode: '0644' # Files
+  notify: restart api_app service
+
+- name: App | Create virtual environment and install dependencies
+  ansible.builtin.pip:
+    requirements: "{{ app_src_dir }}/requirements.txt"
+    virtualenv: "{{ app_venv_dir }}"
+    virtualenv_command: python3 -m venv # Uses python3 from PATH
+  become: yes # Ensure permissions if needed, but should run as app_os_user
+  become_user: "{{ app_os_user }}" # Create venv and install packages as the app user
+  notify: restart hello app service
+
+- name: App | Ensure database schema is applied
+  community.postgresql.postgresql_script:
+    db: "{{ db_name }}"
+    login_user: "{{ db_user }}"
+    login_password: "{{ db_password }}"
+    login_host: "{{ db_host }}"
+    command: "psql
+    path: "{{ app_src_dir }}/schema.sql" # Path to the SQL file on the remote host
+  become: yes # Often needs to be postgres or a user with sufficient DB privileges
+  no_log: true # Do not log password
+
+- name: App | Create systemd service file for Hello App
+  ansible.builtin.template:
+    src: hello_app.service.j2
+    dest: /etc/systemd/system/api_app.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart api_app service
+
+- name: App | Ensure systemd reloads configuration if service file changed
+  ansible.builtin.systemd:
+    daemon_reload: yes
+  # This will be triggered by the notify from the template task if it changes the file.
+
+- name: App | Ensure Api App service is started and enabled
+  ansible.builtin.service:
+    name: api_app
+    state: started
+    enabled: yes

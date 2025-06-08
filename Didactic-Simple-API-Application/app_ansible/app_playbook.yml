@@ -1,0 +1,25 @@
+- hosts: webservers
+  become: yes
+  vars:
+    # Database credentials
+    # Ansible Vault for sensitive data like passwords to be used!!!!!!!
+    db_name: "app_db"
+    db_user: "app_user"      
+    #db_password:   Vault to be used!!!!!!!!!!!!
+    db_host: Primary cluster created using CloudNativePG
+
+    # Application OS user and directory
+    # Ansible Vault for sensitive data like passwords to be used!!!!!!!
+    app_os_user: "os_app"          
+    app_os_group: "os_app_group"         
+    app_root_dir: "/opt/api_app" 
+    app_src_dir: "{{ app_root_dir }}/current" 
+    app_venv_dir: "{{ app_root_dir }}/venv"   
+
+    # Gunicorn settings
+    gunicorn_workers: 3
+    gunicorn_bind_port: 5000 # Flask port
+
+  roles:
+    - initial
+    - app
