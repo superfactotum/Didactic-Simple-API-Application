@@ -77,4 +77,4 @@ You can access the APIs using the public IP address of the VM and port 5000 (as 
 - PUT http://<api_app_vm_public_ip>:5000/hello/yourname with JSON body {"dateOfBirth": "YYYY-MM-DD"}
 - GET http://<api_app_vm_public_ip>:5000/hello/yourname
 
-An URL alies might be needed according to the security requirements
+An URL alias might be needed according to the security requirements
