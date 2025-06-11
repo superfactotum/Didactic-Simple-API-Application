@@ -78,3 +78,8 @@ You can access the APIs using the public IP address of the VM and port 5000 (as 
 - GET http://<api_app_vm_public_ip>:5000/hello/yourname
 
 An URL alias might be needed according to the security requirements
+
+
+To avoid passing AWS secret in the code it is sufficient running ansible and terraform from a server with a proper role attached.
+
+Ansible vault may also be used if required by security rules
